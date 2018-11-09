@@ -24,7 +24,7 @@ float brightnessScale = 0.25;
 float brightnessSpeed = 2.;
 
 // 0 is off, 100 is full brightness
-float brightnessMin = 0;
+float brightnessMin = 2;
 float brightnessMax = 20;
 
 // Don't touch anything below here :)
@@ -46,6 +46,12 @@ const int config = WS2811_GRB | WS2811_800kHz;
 OctoWS2811 leds(ledsPerStrip, displayMemory, drawingMemory, config);
 
 int hueShift = 0;
+float hueMinLerped = 0;
+float hueMaxLerped = 0;
+float sat = 0;
+float satLerped = 0;
+float brightnessMaxLerped = 0;
+float lerpAmt = 0.1;
 
 void setup() {
   leds.begin();
@@ -55,25 +61,94 @@ void setup() {
 void loop() {
   checkSerialInput();
 
-  if (temperature >= 50) hueMin = 0;
-  else if (temperature >= 40) hueMin = 30;
-  else if (temperature >= 30) hueMin = 60;
-  else if (temperature >= 20) hueMin = 90;
-  else if (temperature >= 10) hueMin = 120;
-  else if (temperature >= 0) hueMin = 150;
+  if (temperature >= 31) {
+    hueMin = 240;
+    sat = 100;
+    brightnessMax = 30;
+  }
+  else if (temperature >= 29) {
+    hueMin = 240;
+    sat = 100;
+    brightnessMax = 50;
+  }
+  else if (temperature >= 25) {
+    hueMin = 228;
+    sat = 100;
+    brightnessMax = 50;
+  }
+  else if (temperature >= 21) {
+    hueMin = 216;
+    sat = 100;
+    brightnessMax = 60;
+  }
+  else if (temperature >= 19) {
+    hueMin = 186;
+    sat = 100;
+    brightnessMax = 60;
+  }
+  else if (temperature >= 17) {
+    hueMin = 299;
+    sat = 100;
+    brightnessMax = 80;
+  }
+  else if (temperature >= 15) {
+    hueMin = 305;
+    sat = 61;
+    brightnessMax = 59;
+  }
+  else if (temperature >= 13) {
+    hueMin = 283;
+    sat = 92;
+    brightnessMax = 43;
+  }
+  else if (temperature >= 10) {
+    hueMin = 315;
+    sat = 67;
+    brightnessMax = 40;
+  }
+  else if (temperature >= 9) {
+    hueMin = 307;
+    sat = 72;
+    brightnessMax = 48;
+  }
+  else if (temperature >= 5) {
+    hueMin = 28;
+    sat = 100;
+    brightnessMax = 53;
+  }
+  else if (temperature >= 0) {
+    hueMin = 3;
+    sat = 100;
+    brightnessMax = 50;
+  }
+  else {
+    hueMin = 0;
+    sat = 0;
+    brightnessMax = 0;
+  }
+  
   hueMax = hueMin + 30;
   hueSpread = 0;
+
+  hueMinLerped = lerp(hueMinLerped, hueMin, lerpAmt);
+  hueMaxLerped = lerp(hueMaxLerped, hueMax, lerpAmt);
+
+  satLerped = lerp(satLerped, sat, lerpAmt);
+  brightnessMaxLerped = lerp(brightnessMaxLerped, brightnessMax, lerpAmt);
   
   unsigned long now = millis();
   hueShift = sin(now * hueSpreadSpeed * 0.001f) * hueSpread;
 
   for (int i = 0; i < numPixels; i++) {
-    int color;
-    
-    int hue = map(i, 0, numPixels, hueMin, hueMax);
+    float hue = map(i, 0, numPixels, hueMinLerped, hueMaxLerped);
     float brightnessSine = sin((i * (1 / brightnessScale)) + (now * brightnessSpeed * 0.001f));
-    int brightness = map(brightnessSine, -1, 1, brightnessMin, brightnessMax);
-    color = makeColor(hue + hueShift, 100, brightness);
+    float brightness = map(brightnessSine, -1, 1, brightnessMin, brightnessMax);
+
+    // Getting weird color changes/flickers
+    // Reducing the brightness helps...not sure what's up
+    brightness *= 0.25f;
+    
+    int color = makeColor(hue + hueShift, 100, brightness);
 
     leds.setPixel(i, color);
   }
@@ -172,4 +247,8 @@ unsigned int h2rgb(unsigned int v1, unsigned int v2, unsigned int hue)
   if (hue < 180) return v2 * 60;
   if (hue < 240) return v1 * 60 + (v2 - v1) * (240 - hue);
   return v1 * 60;
+}
+
+float lerp(float val, float target, float amt) {
+  return val + (target - val) * amt;
 }

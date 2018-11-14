@@ -1,7 +1,7 @@
 #include <OctoWS2811.h>
 
 const int ledsPerStrip = 300;
-const int numStrips = 1;
+const int numStrips = 8;
 
 // Starting hue at the beginning of the first strip, 0 - 360
 float hueMin = 180;
@@ -12,7 +12,7 @@ float hueMax = 280;
 // Amount of color variation to apply, 0 - 360. Try 10, 30, 50
 // 0 means no shift, so the start/end from above are used as-is
 // bigger numbers shift the color further away/around the color wheel
-float hueSpread = 20;
+float hueSpread = 0;
 
 // How fast to apply the color shift, 0.1 - about 10?
 // 0.1 is very very slow
@@ -61,65 +61,65 @@ void setup() {
 void loop() {
   checkSerialInput();
 
-  if (temperature >= 31) {
-    hueMin = 240;
-    sat = 100;
-    brightnessMax = 30;
-  }
-  else if (temperature >= 29) {
-    hueMin = 240;
-    sat = 100;
-    brightnessMax = 50;
-  }
-  else if (temperature >= 25) {
-    hueMin = 228;
-    sat = 100;
-    brightnessMax = 50;
+  if (temperature >= 25) {
+    hueMin = 186;
+    sat = 80;
+    brightnessMax = 100;
   }
   else if (temperature >= 21) {
     hueMin = 216;
-    sat = 100;
-    brightnessMax = 60;
+    sat = 80;
+    brightnessMax = 100;
   }
   else if (temperature >= 19) {
-    hueMin = 186;
+    hueMin = 228;
+    sat = 100;
+    brightnessMax = 100;
+  }
+  else if (temperature >= 17) {
+    hueMin = 240;
+    sat = 100;
+    brightnessMax = 100;
+  }
+  else if (temperature >= 15) {
+    hueMin = 257;
     sat = 100;
     brightnessMax = 60;
   }
-  else if (temperature >= 17) {
-    hueMin = 299;
-    sat = 100;
-    brightnessMax = 80;
-  }
-  else if (temperature >= 15) {
-    hueMin = 305;
-    sat = 61;
-    brightnessMax = 59;
-  }
   else if (temperature >= 13) {
-    hueMin = 283;
-    sat = 92;
-    brightnessMax = 43;
+    hueMin = 275;
+    sat = 96;
+    brightnessMax = 100;
   }
-  else if (temperature >= 10) {
-    hueMin = 315;
-    sat = 67;
-    brightnessMax = 40;
+  else if (temperature >= 11) {
+    hueMin = 326;
+    sat = 100;
+    brightnessMax = 79;
   }
   else if (temperature >= 9) {
-    hueMin = 307;
-    sat = 72;
-    brightnessMax = 48;
+    hueMin = 320;
+    sat = 100;
+    brightnessMax = 100;
+  }
+  else if (temperature >= 7) {
+    hueMin = 0;
+    sat = 100;
+    brightnessMax = 100;
   }
   else if (temperature >= 5) {
+    hueMin = 12;
+    sat = 93;
+    brightnessMax = 100;
+  }
+  else if (temperature >= 3) {
     hueMin = 28;
-    sat = 100;
-    brightnessMax = 53;
+    sat = 93;
+    brightnessMax = 100;
   }
   else if (temperature >= 0) {
-    hueMin = 3;
+    hueMin = 60;
     sat = 100;
-    brightnessMax = 50;
+    brightnessMax = 100;
   }
   else {
     hueMin = 0;

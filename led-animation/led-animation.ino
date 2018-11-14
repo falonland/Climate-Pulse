@@ -36,6 +36,9 @@ float brightnessSpeed = 2.;
 float brightnessMin = 2;
 float brightnessMax = 20;
 
+// Amount to reduce brigthness globally
+float brightnessDampen = 0.25;
+
 int temperature = 0;
 int humidity = 0;
 unsigned long lastSensorReadTime = 0;
@@ -81,6 +84,7 @@ void loop() {
     humidity = am2315.readHumidity();
   }
 
+  bool shouldSparkle = (humidity > 60);
   updateColorFromSensor();
 
   hueMax = hueMin + 30;
@@ -95,16 +99,22 @@ void loop() {
   hueShift = sin(now * hueSpreadSpeed * 0.001f) * hueSpread;
 
   for (int i = 0; i < numPixels; i++) {
-    float hue = map(i, 0, numPixels, hueMinLerped, hueMaxLerped);
-    float brightnessSine = sin((i * (1 / brightnessScale)) + (now * brightnessSpeed * 0.001f));
-    float brightness = map(brightnessSine, -1, 1, brightnessMin, brightnessMaxLerped);
+    if (shouldSparkle && random(100) < 1) {
+      int color = makeColor(0, 0, brightnessMax * brightnessDampen);
+      leds.setPixel(i, color);
+    } else {
+      float hue = map(i, 0, numPixels, hueMinLerped, hueMaxLerped);
+      float brightnessSine = sin((i * (1 / brightnessScale)) + (now * brightnessSpeed * 0.001f));
+      float brightness = map(brightnessSine, -1, 1, brightnessMin, brightnessMax);
 
-    // Getting weird color changes/flickers
-    // Reducing the brightness helps...not sure what's up
-    brightness *= 0.25f;
+      // Getting weird color changes/flickers
+      // Reducing the brightness helps...not sure what's up
+      brightness *= brightnessDampen;
 
-    int color = makeColor(hue + hueShift, 100, brightness);
-    leds.setPixel(i, color);
+      int color = makeColor(hue + hueShift, 100, brightness);
+
+      leds.setPixel(i, color);
+    }
   }
   leds.show();
 

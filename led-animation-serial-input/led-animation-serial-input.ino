@@ -19,13 +19,16 @@ float hueSpread = 0;
 // 5 is farily fast
 float hueSpreadSpeed = 2;
 
-// 
+//
 float brightnessScale = 0.25;
 float brightnessSpeed = 2.;
 
 // 0 is off, 100 is full brightness
 float brightnessMin = 2;
 float brightnessMax = 20;
+
+// Amount to reduce brigthness globally
+float brightnessDampen = 0.25;
 
 // Don't touch anything below here :)
 
@@ -126,7 +129,7 @@ void loop() {
     sat = 0;
     brightnessMax = 0;
   }
-  
+
   hueMax = hueMin + 30;
   hueSpread = 0;
 
@@ -135,23 +138,29 @@ void loop() {
 
   satLerped = lerp(satLerped, sat, lerpAmt);
   brightnessMaxLerped = lerp(brightnessMaxLerped, brightnessMax, lerpAmt);
-  
+
   unsigned long now = millis();
   hueShift = sin(now * hueSpreadSpeed * 0.001f) * hueSpread;
 
   for (int i = 0; i < numPixels; i++) {
-    float hue = map(i, 0, numPixels, hueMinLerped, hueMaxLerped);
-    float brightnessSine = sin((i * (1 / brightnessScale)) + (now * brightnessSpeed * 0.001f));
-    float brightness = map(brightnessSine, -1, 1, brightnessMin, brightnessMax);
+    if (random(100) < 1) {
+      int color = makeColor(0, 0, brightnessMax * brightnessDampen);
+      leds.setPixel(i, color);
+    } else {
+      float hue = map(i, 0, numPixels, hueMinLerped, hueMaxLerped);
+      float brightnessSine = sin((i * (1 / brightnessScale)) + (now * brightnessSpeed * 0.001f));
+      float brightness = map(brightnessSine, -1, 1, brightnessMin, brightnessMax);
 
-    // Getting weird color changes/flickers
-    // Reducing the brightness helps...not sure what's up
-    brightness *= 0.25f;
-    
-    int color = makeColor(hue + hueShift, 100, brightness);
+      // Getting weird color changes/flickers
+      // Reducing the brightness helps...not sure what's up
+      brightness *= brightnessDampen;
 
-    leds.setPixel(i, color);
+      int color = makeColor(hue + hueShift, 100, brightness);
+
+      leds.setPixel(i, color);
+    }
   }
+  
   leds.show();
 
   //delay(1000.f / 60.f);
@@ -163,7 +172,7 @@ void checkSerialInput() {
 
     if (state == NORMAL) {
       int value = Serial.read();
-      
+
       if (value == '?') {
         Serial.println("Menu:");
         Serial.println("1. Set temperature");
@@ -181,7 +190,7 @@ void checkSerialInput() {
 
     else if (state == AWAITING_TEMPERATURE) {
       int value = Serial.parseInt();
-      
+
       if (value == 0) {
         Serial.println("Ok, aborting setting of temperature");
       }
@@ -192,13 +201,13 @@ void checkSerialInput() {
         Serial.print("New temperature: ");
         Serial.println(temperature);
       }
-      
+
       state = NORMAL;
     }
 
     else if (state == AWAITING_HUMIDITY) {
       int value = Serial.parseInt();
-      
+
       if (value == 0) {
         Serial.println("Ok, aborting setting of humidity");
       }
@@ -209,7 +218,7 @@ void checkSerialInput() {
         Serial.print("New humidity: ");
         Serial.println(humidity);
       }
-      
+
       state = NORMAL;
     }
   }

@@ -163,8 +163,8 @@ void loop() {
   
   leds.show();
 
-  //delay(1000.f / 60.f);
-  delay(1);
+  delay(1000.f / 60.f);
+  //delay(1);
 }
 
 void checkSerialInput() {

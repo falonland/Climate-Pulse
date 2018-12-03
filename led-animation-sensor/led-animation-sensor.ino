@@ -82,6 +82,9 @@ void loop() {
     lastSensorReadTime = now;
     temperature = am2315.readTemperature();
     humidity = am2315.readHumidity();
+
+    Serial.print("Temp: "); Serial.println(temp);
+    Serial.print("Humidity: "); Serial.println(humidity);
   }
 
   bool shouldSparkle = (humidity > 60);

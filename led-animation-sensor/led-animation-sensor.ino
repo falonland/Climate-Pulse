@@ -9,38 +9,47 @@
 
 Adafruit_AM2315 am2315;
 
+
+// 0 is off, 100 is full brightness
+float brightnessMin = 30;
+float brightnessMax = 75;
+
+// Amount to reduce brigthness globally
+// 1 = undampened. DON'T DO THIS.
+// if brightnessMax is all the way up to 100 and still not bright enough,
+// try raising globalBrightness up bit by bit
+float globalBrightness = 0.25;
+
+
+
 const int ledsPerStrip = 300;
 const int numStrips = 8;
 
 // Starting hue at the beginning of the first strip, 0 - 360
 float hueMin = 180;
 
-// Ending hue at the end of the last strip, 0 - 360
-float hueMax = 280;
+// Ending hue at the end of the last strip, relative to hueMin, 0 - 360
+float hueMaxAdd = 30;
 
 // Amount of color variation to apply, 0 - 360. Try 10, 30, 50
 // 0 means no shift, so the start/end from above are used as-is
 // bigger numbers shift the color further away/around the color wheel
-float hueSpread = 20;
+float hueSpread = 10;
 
 // How fast to apply the color shift, 0.1 - about 10?
 // 0.1 is very very slow
 // 5 is farily fast
 float hueSpreadSpeed = 2;
 
-//
+// NOTE: brightness scale is no longer used! All the LEDs get the same brightness now
+// so that they all pulse together
 float brightnessScale = 0.25;
-float brightnessSpeed = 2.;
+float brightnessSpeed = 1.;
 
-// 0 is off, 100 is full brightness
-float brightnessMin = 2;
-float brightnessMax = 20;
+float sparkleHumidity = 82;
 
-// Amount to reduce brigthness globally
-float brightnessDampen = 0.25;
-
-int temperature = 0;
-int humidity = 0;
+float temperature = 0;
+float humidity = 0;
 unsigned long lastSensorReadTime = 0;
 
 const int numPixels = ledsPerStrip * numStrips;
@@ -58,9 +67,6 @@ float brightnessMaxLerped = 0;
 float lerpAmt = 0.1;
 
 void setup() {
-  // Start LEDs with black color
-  leds.begin();
-  leds.show();
 
   Serial.begin(9600);
   while (!Serial) {
@@ -68,30 +74,52 @@ void setup() {
   }
   Serial.println("AM2315 Test!");
 
+  am2315.begin();
+
+  int i = 0;
+
+  while (++i < 3) {
+    if (am2315.readTemperatureAndHumidity(temperature, humidity)) {
+      //if (temp > 0) {
+      Serial.print("Got temp: " ); Serial.println(temperature);
+      break;
+    } else {
+      Serial.println("No reading");
+      delay(2000);
+      //break;
+    }
+  }
+
+  Serial.println("Calling begin again");
   if (!am2315.begin()) {
     Serial.println("Sensor not found, check wiring & pullups!");
-    while (1);
+    //while (1);
   }
+
+  // Start LEDs with black color
+  leds.begin();
+  leds.show();
 }
 
 void loop() {
   unsigned long now = millis();
 
   // Update sensor once per second
-  if (now - lastSensorReadTime > 1000) {
+  if (now - lastSensorReadTime > 2000) {
     lastSensorReadTime = now;
-    temperature = am2315.readTemperature();
-    humidity = am2315.readHumidity();
+ 
+    am2315.readTemperatureAndHumidity(temperature, humidity);   
+    //temperature = am2315.readTemperature();
+    //humidity = am2315.readHumidity();
 
-    Serial.print("Temp: "); Serial.println(temp);
+    Serial.print("Temp: "); Serial.println(temperature);
     Serial.print("Humidity: "); Serial.println(humidity);
   }
 
-  bool shouldSparkle = (humidity > 60);
+  bool shouldSparkle = (humidity > sparkleHumidity);
   updateColorFromSensor();
 
-  hueMax = hueMin + 30;
-  hueSpread = 0;
+  float hueMax = hueMin + hueMaxAdd;
 
   hueMinLerped = lerp(hueMinLerped, hueMin, lerpAmt);
   hueMaxLerped = lerp(hueMaxLerped, hueMax, lerpAmt);
@@ -101,18 +129,20 @@ void loop() {
 
   hueShift = sin(now * hueSpreadSpeed * 0.001f) * hueSpread;
 
+  float brightnessSine = sin((0 * (1 / brightnessScale)) + (now * brightnessSpeed * 0.001f));
+
   for (int i = 0; i < numPixels; i++) {
     if (shouldSparkle && random(100) < 1) {
-      int color = makeColor(0, 0, brightnessMax * brightnessDampen);
+      int color = makeColor(0, 0, brightnessMax * globalBrightness);
       leds.setPixel(i, color);
     } else {
       float hue = map(i, 0, numPixels, hueMinLerped, hueMaxLerped);
-      float brightnessSine = sin((i * (1 / brightnessScale)) + (now * brightnessSpeed * 0.001f));
+      //float brightnessSine = sin((i * (1 / brightnessScale)) + (now * brightnessSpeed * 0.001f));
       float brightness = map(brightnessSine, -1, 1, brightnessMin, brightnessMax);
 
       // Getting weird color changes/flickers
       // Reducing the brightness helps...not sure what's up
-      brightness *= brightnessDampen;
+      brightness *= globalBrightness;
 
       int color = makeColor(hue + hueShift, 100, brightness);
 
@@ -121,7 +151,8 @@ void loop() {
   }
   leds.show();
 
-  delay(1000.f / 60.f);
+  delay(1000.f / 30.f);
+  //delay(1000.f / 60.f);
   //delay(1);
 
 }
